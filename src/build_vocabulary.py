@@ -114,18 +114,23 @@ with mlflow.start_run(experiment_id=experiment.experiment_id):
     vocabulary_file = f"{vocabulary_id}.pickle"
     vocabulary_metadata_file = f"{vocabulary_id}.json"
 
-    vocabulary_metadata = {
-        "id": vocabulary_id,
+    vocabulary_parameters = {
         "kmer_size": kmer_max,
         "stride": stride,
-        "vocabulary_length": summary["length"],
-        "number_files_processed": len(fasta_files)
+        "number_files_processed": len(fasta_files),
+        "tokenizer": tokenizer.get_id_string()
     }
+
+    vocabulary_metadata = {
+        "id": vocabulary_id,
+        "vocabulary_length": summary["length"],
+        "included_sequences": [os.path.basename(file) for file, path in fasta_files]
+    } | vocabulary_parameters
 
     vocabulary = Vocab(tokens.tokens, specials=["pad", "unk"])
     vocabulary.set_default_index(vocabulary["unk"])
 
-    mlflow.log_params(vocabulary_metadata)
+    mlflow.log_params(vocabulary_parameters)
 
     metadata_file = get_absolute_path(f"../checkpoints/vocab/{vocabulary_metadata_file}")
     pickle_file = get_absolute_path(f"../checkpoints/vocab/{vocabulary_file}")
