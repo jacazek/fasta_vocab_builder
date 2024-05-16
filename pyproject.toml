@@ -1,0 +1,18 @@
+[project]
+name = "vocabulary_builder"
+version = "0.0.1"
+dependencies=[
+    "numpy",
+    "git+https://github.com/jacazek/fasta_utils.git@main#egg=fasta_utils",
+    "mlflow",
+    "psutil",
+    "tqdm",
+    "commitizen"
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
