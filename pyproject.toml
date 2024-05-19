@@ -1,6 +1,6 @@
 [project]
 name = "vocabulary_builder"
-version = "0.1.0"
+version = "0.2.0"
 dependencies=[
     "numpy",
     "git+https://github.com/jacazek/fasta_utils.git@main#egg=fasta_utils",

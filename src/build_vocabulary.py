@@ -20,8 +20,8 @@ def get_absolute_path(path):
 fasta_file_directory = get_absolute_path("../data")
 fasta_file_extension = ".fa.gz"
 kmer_min = 3
-kmer_max = 6
-stride = 2
+kmer_max = 7
+stride = 3
 
 
 class TokenStore():
@@ -55,7 +55,6 @@ def producer(name, fasta_file, t, tokenizer, queue):
             t.set_description(f"{name}:{header}")
             for token in tokenizer.tokenize(sequence):
                 token_store.add(token)
-                token_store.add(utils.get_compliment(token))
                 t.update()
             queue.put(token_store)
 
