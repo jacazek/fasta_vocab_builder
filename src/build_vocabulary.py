@@ -1,4 +1,5 @@
 import os
+import shutil
 from multiprocessing import Process, Queue
 from fasta_utils.vocab import Vocab
 from fasta_utils import FastaFileReader
@@ -19,8 +20,8 @@ def get_absolute_path(path):
 fasta_file_directory = get_absolute_path("../data")
 fasta_file_extension = ".fa.gz"
 kmer_min = 3
-kmer_max = 7
-stride = 3
+kmer_max = 6
+stride = 2
 
 
 class TokenStore():
@@ -54,6 +55,7 @@ def producer(name, fasta_file, t, tokenizer, queue):
             t.set_description(f"{name}:{header}")
             for token in tokenizer.tokenize(sequence):
                 token_store.add(token)
+                token_store.add(utils.get_compliment(token))
                 t.update()
             queue.put(token_store)
 
@@ -107,12 +109,18 @@ with mlflow.start_run(experiment_id=experiment.experiment_id):
     tokens = token_queue.get(block=True)
     consumer_process.join()
 
-    summary = utils.summarize_vocabulary(tokens.tokens)
+    summary, frequencies = utils.summarize_vocabulary(tokens.tokens)
     print(summary)
+
+    special_tokens = ["pad", "unk"]
+
+    vocabulary = Vocab(tokens.tokens, specials=special_tokens)
+    vocabulary.set_default_index(vocabulary["unk"])
 
     vocabulary_id = f"{tokenizer.get_id_string()}-{utils.get_timestamp()}"
     vocabulary_file = f"{vocabulary_id}.pickle"
     vocabulary_metadata_file = f"{vocabulary_id}.json"
+    vocabulary_frequency_file = f"{vocabulary_id}_frequencies.json"
 
     vocabulary_parameters = {
         "kmer_size": kmer_max,
@@ -122,20 +130,27 @@ with mlflow.start_run(experiment_id=experiment.experiment_id):
     }
 
     vocabulary_metadata = {
-        "id": vocabulary_id,
-        "vocabulary_length": summary["length"],
-        "included_sequences": [os.path.basename(file) for file, path in fasta_files]
-    } | vocabulary_parameters
+                              "id": vocabulary_id,
+                              "included_sequences": [os.path.basename(file) for file, path in fasta_files]
+                          } | vocabulary_parameters | summary
 
-    vocabulary = Vocab(tokens.tokens, specials=["pad", "unk"])
-    vocabulary.set_default_index(vocabulary["unk"])
+    metrics = summary.copy()
+
+    del metrics["top_10"]
 
     mlflow.log_params(vocabulary_parameters)
+    mlflow.log_metrics(metrics)
 
-    metadata_file = get_absolute_path(f"../checkpoints/vocab/{vocabulary_metadata_file}")
-    pickle_file = get_absolute_path(f"../checkpoints/vocab/{vocabulary_file}")
+    os.mkdir(get_absolute_path(f"../artifacts/{vocabulary_id}"))
+    metadata_file = get_absolute_path(f"../artifacts/{vocabulary_id}/{vocabulary_metadata_file}")
+    frequency_file = get_absolute_path(f"../artifacts/{vocabulary_id}/{vocabulary_frequency_file}")
+    pickle_file = get_absolute_path(f"../artifacts/{vocabulary_id}/{vocabulary_file}")
     utils.save_json(vocabulary_metadata, metadata_file)
+    utils.save_json(frequencies, frequency_file)
     Vocab.save(vocabulary, pickle_file)
 
-    mlflow.log_artifact(metadata_file)
-    mlflow.log_artifact(pickle_file)
+    mlflow.log_artifacts(get_absolute_path(f"../artifacts/{vocabulary_id}/"))
+    shutil.rmtree(get_absolute_path(f"../artifacts/{vocabulary_id}/"))
+
+
+

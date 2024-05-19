@@ -161,4 +161,4 @@ cython_debug/
 
 compressed-data/
 data/
-checkpoints/
+artifacts/
