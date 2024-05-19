@@ -29,9 +29,9 @@ class TokenStore():
         self.tokens = {}
 
     def add(self, token):
-        if token in self.tokens:
+        try:
             self.tokens[token] = self.tokens[token] + 1
-        else:
+        except KeyError:
             self.tokens[token] = 1
 
     def merge(self, source_token_store):
@@ -53,8 +53,9 @@ def producer(name, fasta_file, t, tokenizer, queue):
         for header, sequence in fasta_file_reader.read_all():
             token_store = TokenStore()
             t.set_description(f"{name}:{header}")
-            for token in tokenizer.tokenize(sequence):
+            for token, reversed_token in tokenizer.tokenize(sequence):
                 token_store.add(token)
+                token_store.add(reversed_token)
                 t.update()
             queue.put(token_store)
 
@@ -77,7 +78,7 @@ experiment = mlflow.get_experiment_by_name("Fasta Vocabulary")
 with mlflow.start_run(experiment_id=experiment.experiment_id):
     token_queue = Queue()
     # tokenizer = VariableKmerTokenizer(kmer_min, kmer_max, stride)
-    tokenizer = KmerTokenizer(kmer_max, stride)
+    tokenizer = KmerTokenizer(kmer_max, stride, include_compliement=True)
     producer_progress_bars = []
     producer_processes = []
 
