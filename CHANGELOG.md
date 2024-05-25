@@ -1,3 +1,10 @@
+## 0.4.0 (2024-05-25)
+
+### Feat
+
+- **build_vocabulary**: capture command as tag
+- add cli arguments
+
 ## 0.3.0 (2024-05-18)
 
 ### Feat
