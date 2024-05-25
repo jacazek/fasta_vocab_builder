@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 from multiprocessing import Process, Queue
 from fasta_utils.vocab import Vocab
 from fasta_utils import FastaFileReader
@@ -85,7 +86,7 @@ def consumer(queue, index):
     t.close()
 
 
-def main(build_args: BuildArgs):
+def main(build_args: BuildArgs, command):
     fasta_file_directory = get_absolute_path(build_args.fasta_directory)
     fasta_file_extension = ".fa.gz"
 
@@ -98,11 +99,13 @@ def main(build_args: BuildArgs):
     mlflow.set_tracking_uri(uri="http://localhost:8080")
     experiment = mlflow.get_experiment_by_name("Fasta Vocabulary")
     with mlflow.start_run(experiment_id=experiment.experiment_id) as run:
+        mlflow.set_tags({
+            "command": command
+        })
         token_queue = Queue()
         tokenizer = KmerTokenizer(build_args.kmer_size, build_args.stride, include_compliement=True)
         producer_progress_bars = []
         producer_processes = []
-
 
         # Switch to using the process pool executor
         number_of_workers = len(fasta_files)
@@ -190,7 +193,6 @@ def main(build_args: BuildArgs):
 
 if __name__ == "__main__":
     default_data_directory = os.path.abspath(os.path.join(script_directory, "../data"))
-    print(script_directory)
     parser = argparse.ArgumentParser(description="Train kmer vocabulary.")
     parser.add_argument("--kmer_size", type=int, default=7, help="The size of kmers for the vocabulary.")
     parser.add_argument("--stride", type=int, default=3, help="The stride between kmers.")
@@ -200,5 +202,6 @@ if __name__ == "__main__":
                         help="The number of worker processes to build the vocabulary (1 process gets a single file).")
 
     args = parser.parse_args()
+    command = str(subprocess.run(["ps", "-p", f"{os.getpid()}", "-o", "args", "--no-headers"], capture_output=True, text=True).stdout)
     build_args = BuildArgs(**vars(args))
-    main(build_args)
+    main(build_args, command)
