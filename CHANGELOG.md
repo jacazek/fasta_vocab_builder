@@ -1,3 +1,9 @@
+## 0.5.0 (2024-06-01)
+
+### Feat
+
+- **build_vocabulary.py**: limit output if not tty
+
 ## 0.4.0 (2024-05-25)
 
 ### Feat
