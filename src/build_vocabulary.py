@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import subprocess
 from multiprocessing import Process, Queue
@@ -13,7 +14,7 @@ from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 from collections import Counter
-
+mininterval = 0.1 if sys.stdout.isatty() else 60.0
 script_directory = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -73,7 +74,7 @@ def producer(job_list, t, tokenizer, queue):
 
 def consumer(queue, index):
     token_store = TokenStore()
-    t = tqdm.tqdm(desc="vocab_builder", position=index)
+    t = tqdm.tqdm(desc="vocab_builder", position=index, mininterval=mininterval)
     while True:
         tokens_from_producer = queue.get(block=True)
         if tokens_from_producer is None:
@@ -128,7 +129,7 @@ def main(build_args: BuildArgs, command):
         jobs = np.array_split(fasta_files, number_of_workers)
         for index, job_list in enumerate(jobs):
             # name, fasta_file = fasta_files[0]
-            t = tqdm.tqdm(position=index)
+            t = tqdm.tqdm(position=index, mininterval=mininterval)
             producer_progress_bars.append(t)
             producer_processes.append(Process(target=producer, args=(job_list, t, tokenizer, token_queue)))
 
